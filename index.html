@@ -1,0 +1,884 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<meta name="description" content="CleanSRT — pre-sale concept. An offline desktop tool that cleans the SRT/VTT you already have from CapCut, Premiere or Whisper, removes fillers and repeats, fixes line breaks, and exports clean subtitles, YouTube chapters and MP3 chapters. Not built yet." />
+<link rel="icon" href="data:," />
+<title>CleanSRT — Clean up your messy subtitles and get your chapters in one click</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#f7f6f2;
+    --surface:#ffffff;
+    --surface-2:#efeee8;
+    --ink:#15171c;
+    --ink-soft:#3c414b;
+    --muted:#6a707c;
+    --line:#dddacd;
+    --line-strong:#c9c6b8;
+    --accent:#f2b705;
+    --accent-ink:#15171c;
+    --accent-soft:#fdf3d3;
+    --good:#177245;
+    --good-bg:#e7f4ec;
+    --bad:#b3352b;
+    --bad-bg:#fbeae8;
+    --code-bg:#14161a;
+    --code-ink:#e8e6dc;
+    --code-dim:#9a978a;
+    --code-hl:#f2b705;
+    --radius:10px;
+    --shadow:0 1px 2px rgba(21,23,28,.06),0 8px 24px rgba(21,23,28,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#101114;
+      --surface:#17181d;
+      --surface-2:#1e1f26;
+      --ink:#f1efe7;
+      --ink-soft:#c9cbd2;
+      --muted:#9a9ea9;
+      --line:#2b2c34;
+      --line-strong:#3a3b46;
+      --accent-soft:#2e270e;
+      --good:#5fce93;
+      --good-bg:#12291c;
+      --bad:#f08a80;
+      --bad-bg:#2e1714;
+      --code-bg:#0b0c0e;
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  @media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} }
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+    font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased;
+  }
+  button,[role="button"],select,summary,input:not([type="checkbox"],[type="radio"]){min-height:2.25rem}
+  a{color:inherit}
+  .wrap{max-width:1060px;margin:0 auto;padding:0 20px}
+  .mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+
+  /* ---------- Pre-sale strip ---------- */
+  .presale-strip{
+    background:var(--accent);color:var(--accent-ink);
+    font-family:"IBM Plex Mono",ui-monospace,monospace;
+    font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    text-align:center;padding:10px 16px;line-height:1.5;
+  }
+  .presale-strip strong{background:var(--accent-ink);color:var(--accent);padding:1px 8px;border-radius:3px;margin-right:8px;letter-spacing:.08em}
+
+  /* ---------- Top bar ---------- */
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 0 4px}
+  .wordmark{font-weight:700;font-size:22px;letter-spacing:-.02em;text-decoration:none;display:flex;align-items:center;gap:10px}
+  .wordmark .mark{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:34px;height:34px;border-radius:7px;background:var(--ink);color:var(--bg);
+    font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:600;
+  }
+  .topbar nav{display:flex;gap:4px;flex-wrap:wrap}
+  .topbar nav a{
+    text-decoration:none;font-size:15px;font-weight:500;color:var(--ink-soft);
+    padding:8px 12px;border-radius:6px;min-height:36px;display:inline-flex;align-items:center;
+  }
+  .topbar nav a:hover{background:var(--surface-2);color:var(--ink)}
+
+  /* ---------- Hero ---------- */
+  .hero{padding:44px 0 30px}
+  .hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:44px;align-items:start}
+  .status-pill{
+    display:inline-flex;align-items:center;gap:8px;
+    border:1.5px solid var(--ink);border-radius:999px;padding:5px 14px 5px 10px;
+    font-family:"IBM Plex Mono",monospace;font-size:12.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+    background:var(--surface);
+  }
+  .status-pill .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);border:1.5px solid var(--ink)}
+  h1{font-size:clamp(32px,4.6vw,50px);line-height:1.12;letter-spacing:-.025em;margin:20px 0 18px;font-weight:700}
+  h1 .hl{background:linear-gradient(transparent 62%,var(--accent) 62%,var(--accent) 94%,transparent 94%);padding:0 2px}
+  .lede{font-size:19px;color:var(--ink-soft);margin:0 0 14px;max-width:34em}
+  .lede strong{color:var(--ink)}
+  .no-list{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 26px}
+  .no-list span{
+    font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:500;
+    border:1px solid var(--line-strong);border-radius:999px;padding:5px 12px;color:var(--ink-soft);background:var(--surface);
+  }
+  .no-list span b{color:var(--bad);font-weight:600;margin-right:5px}
+
+  /* Waitlist form */
+  .waitlist{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px}
+  .waitlist h2{font-size:17px;margin:0 0 4px;letter-spacing:-.01em}
+  .waitlist p{margin:0 0 14px;font-size:14.5px;color:var(--muted)}
+  .wl-row{display:flex;gap:10px}
+  .wl-row input{
+    flex:1;min-width:0;font:inherit;font-size:16px;padding:10px 14px;
+    border:1.5px solid var(--line-strong);border-radius:8px;background:var(--bg);color:var(--ink);
+  }
+  .wl-row input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--ink)}
+  .btn{
+    font:inherit;font-weight:600;cursor:pointer;border-radius:8px;border:1.5px solid var(--ink);
+    padding:10px 20px;background:var(--ink);color:var(--bg);white-space:nowrap;min-height:44px;
+  }
+  .btn:hover{opacity:.88}
+  .btn-accent{background:var(--accent);color:var(--accent-ink);border-color:var(--accent-ink)}
+  .buy-btn{
+    display:flex;align-items:center;justify-content:center;width:100%;
+    text-decoration:none;font-size:18px;padding:14px 22px;min-height:54px;text-align:center;
+  }
+  .buy-btn:hover{opacity:.9}
+  .wl-note{font-size:13px;color:var(--muted);margin:12px 0 0}
+  .wl-success{
+    display:none;border:1.5px solid var(--good);background:var(--good-bg);color:var(--ink);
+    border-radius:8px;padding:14px 16px;font-size:15px;
+  }
+  .wl-success.show{display:block}
+  .wl-success strong{color:var(--good)}
+  .wl-error{display:none;color:var(--bad);font-size:14px;margin:10px 0 0;font-weight:500}
+  .wl-error.show{display:block}
+
+  /* Price snapshot */
+  .price-snap{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+  .price-snap .cell{flex:1;min-width:130px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px}
+  .price-snap .k{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .price-snap .v{font-size:21px;font-weight:700;letter-spacing:-.02em;margin-top:2px}
+  .price-snap .v small{font-size:13px;font-weight:500;color:var(--muted)}
+  .price-snap .cell.hot{border-color:var(--ink);background:var(--accent-soft)}
+
+  /* ---------- Code panels ---------- */
+  .code-panel{background:var(--code-bg);color:var(--code-ink);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+  .code-head{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.09);
+    font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--code-dim);letter-spacing:.04em;
+  }
+  .code-head .tag{font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+  .tag-before{color:#f08a80}
+  .tag-after{color:#5fce93}
+  .code-body{padding:18px;font-family:"IBM Plex Mono",monospace;font-size:14.5px;line-height:1.75;overflow-x:auto}
+  .code-body .ts{color:var(--code-hl)}
+  .code-body .fill{color:#f08a80;text-decoration:line-through;text-decoration-thickness:1.5px}
+  .code-body .dim{color:var(--code-dim)}
+  .hero .code-stack{display:grid;gap:14px}
+  .code-caption{font-size:13.5px;color:var(--muted);margin:2px 2px 0}
+  .arrow-row{display:flex;align-items:center;gap:10px;font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;padding-left:4px}
+  .arrow-row::after{content:"";flex:1;border-top:1.5px dashed var(--line-strong)}
+
+  /* ---------- Sections ---------- */
+  section{padding:52px 0 8px}
+  .sec-head{max-width:44em;margin-bottom:26px}
+  .sec-head h2{font-size:clamp(25px,3.2vw,34px);letter-spacing:-.02em;line-height:1.2;margin:0 0 10px}
+  .sec-head p{margin:0;color:var(--ink-soft);font-size:17.5px}
+  .kicker{font-family:"IBM Plex Mono",monospace;font-size:12.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 12px;display:flex;align-items:center;gap:10px}
+  .kicker::before{content:"";width:26px;border-top:2.5px solid var(--accent)}
+
+  /* Pain */
+  .pain-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .pain-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:24px}
+  .pain-card h3{margin:0 0 12px;font-size:18px;letter-spacing:-.01em}
+  .pain-card ul{margin:0;padding:0;list-style:none}
+  .pain-card li{padding:7px 0 7px 26px;position:relative;color:var(--ink-soft);border-bottom:1px dashed var(--line)}
+  .pain-card li:last-child{border-bottom:none}
+  .pain-card li::before{content:"×";position:absolute;left:4px;color:var(--bad);font-weight:700}
+  .pain-card li code{font-family:"IBM Plex Mono",monospace;font-size:14px;background:var(--surface-2);padding:1px 6px;border-radius:4px;color:var(--ink)}
+  .time-card{background:var(--ink);color:var(--bg);border-radius:var(--radius);padding:24px;display:flex;flex-direction:column}
+  @media (prefers-color-scheme: dark){ .time-card{background:var(--surface-2);color:var(--ink);border:1px solid var(--line)} }
+  .time-card .big{font-size:clamp(30px,3.6vw,42px);font-weight:700;letter-spacing:-.03em;line-height:1.15;margin:6px 0 10px}
+  .time-card .big em{font-style:normal;color:var(--accent)}
+  .time-card p{margin:0;color:inherit;opacity:.85;font-size:15.5px}
+  .time-card .src{margin-top:auto;padding-top:16px;font-size:13px;opacity:.6}
+
+  /* Steps */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .step{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:24px}
+  .step .num{
+    font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:14px;
+    width:38px;height:38px;border-radius:50%;background:var(--accent);color:var(--accent-ink);
+    display:flex;align-items:center;justify-content:center;border:1.5px solid var(--accent-ink);margin-bottom:14px;
+  }
+  .step h3{margin:0 0 8px;font-size:18px;letter-spacing:-.01em}
+  .step p{margin:0;color:var(--ink-soft);font-size:15.5px}
+  .step p code{font-family:"IBM Plex Mono",monospace;font-size:13.5px;background:var(--surface-2);padding:1px 6px;border-radius:4px}
+
+  /* Demo tabs */
+  .demo-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .demo-tab{
+    font:inherit;font-size:14.5px;font-weight:600;cursor:pointer;
+    border:1.5px solid var(--line-strong);background:var(--surface);color:var(--ink-soft);
+    border-radius:999px;padding:8px 18px;min-height:40px;
+  }
+  .demo-tab[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .ba-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .cue-list{display:grid;gap:0}
+  .cue{padding:12px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+  .cue:last-child{border-bottom:none;padding-bottom:2px}
+  .cue:first-child{padding-top:2px}
+  .cue .n{font-size:11.5px;color:var(--code-dim);letter-spacing:.08em;text-transform:uppercase;display:block;margin-bottom:3px}
+  .cue p{margin:0;font-size:14px;line-height:1.65}
+  .demo-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:20px}
+  .stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;text-align:left}
+  .stat .v{font-size:28px;font-weight:700;letter-spacing:-.03em;line-height:1}
+  .stat .k{font-size:13.5px;color:var(--muted);margin-top:6px;line-height:1.45}
+  .honest-note{
+    margin-top:16px;border-left:3px solid var(--accent);background:var(--accent-soft);
+    padding:14px 18px;border-radius:0 var(--radius) var(--radius) 0;font-size:15px;color:var(--ink-soft);
+  }
+  .honest-note strong{color:var(--ink)}
+
+  /* Try it */
+  .tryit{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px}
+  .tryit-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:18px;align-items:stretch}
+  .tryit label{font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px}
+  .tryit textarea{
+    width:100%;height:100%;min-height:190px;resize:vertical;font-family:"IBM Plex Mono",monospace;font-size:14px;line-height:1.7;
+    border:1.5px solid var(--line-strong);border-radius:8px;background:var(--bg);color:var(--ink);padding:14px;
+  }
+  .tryit textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
+  .tryit .out{
+    font-family:"IBM Plex Mono",monospace;font-size:14px;line-height:1.7;white-space:pre-wrap;word-break:break-word;
+    border:1.5px solid var(--line);border-radius:8px;background:var(--code-bg);color:var(--code-ink);padding:14px;min-height:190px;margin:0;
+  }
+  .tryit-mid{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+  .tryit-count{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--muted);text-align:center;min-height:2.6em}
+
+  /* Does / does not */
+  .does-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .does-card{border-radius:var(--radius);padding:24px;border:1px solid var(--line)}
+  .does-card.yes{background:var(--good-bg)}
+  .does-card.no{background:var(--bad-bg)}
+  .does-card h3{margin:0 0 14px;font-size:19px;display:flex;align-items:center;gap:10px}
+  .does-card ul{margin:0;padding:0;list-style:none}
+  .does-card li{padding:8px 0 8px 30px;position:relative;font-size:15.5px;color:var(--ink-soft);border-bottom:1px dashed var(--line)}
+  .does-card li:last-child{border-bottom:none}
+  .does-card li strong{color:var(--ink)}
+  .does-card li .ic{position:absolute;left:0;top:9px;width:20px;height:20px}
+  .does-card li code{font-family:"IBM Plex Mono",monospace;font-size:13.5px;background:var(--surface);padding:1px 6px;border-radius:4px;color:var(--ink)}
+
+  /* Pricing */
+  .pricing-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:20px;align-items:stretch}
+  .price-card{background:var(--surface);border:2px solid var(--ink);border-radius:14px;padding:28px;box-shadow:var(--shadow);position:relative}
+  .price-card .flag{
+    position:absolute;top:-14px;left:24px;background:var(--accent);color:var(--accent-ink);
+    font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+    padding:4px 12px;border-radius:4px;border:1.5px solid var(--accent-ink);
+  }
+  .price-main{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:8px 0 4px}
+  .price-main .now{font-size:52px;font-weight:700;letter-spacing:-.04em;line-height:1}
+  .price-main .was{font-size:24px;color:var(--muted);text-decoration:line-through}
+  .price-main .per{font-size:15px;color:var(--muted);font-weight:500}
+  .price-card ul{margin:16px 0 0;padding:0;list-style:none}
+  .price-card li{padding:7px 0 7px 28px;position:relative;color:var(--ink-soft);font-size:15.5px}
+  .price-card li::before{content:"";position:absolute;left:2px;top:13px;width:14px;height:8px;border-left:3px solid var(--good);border-bottom:3px solid var(--good);transform:rotate(-45deg)}
+  .price-card li strong{color:var(--ink)}
+  .promise-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:28px}
+  .promise-card h3{margin:0 0 12px;font-size:20px;letter-spacing:-.01em}
+  .promise-card p{margin:0 0 12px;color:var(--ink-soft);font-size:15.5px}
+  .promise-card p:last-child{margin-bottom:0}
+  .promise-card .big-line{font-size:18px;font-weight:600;color:var(--ink)}
+
+  /* FAQ */
+  .faq-list{display:grid;gap:12px;max-width:820px}
+  details.faq{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+  details.faq summary{
+    cursor:pointer;font-weight:600;font-size:16.5px;padding:16px 52px 16px 20px;position:relative;list-style:none;line-height:1.45;
+  }
+  details.faq summary::-webkit-details-marker{display:none}
+  details.faq summary::after{
+    content:"+";position:absolute;right:18px;top:50%;transform:translateY(-50%);
+    font-family:"IBM Plex Mono",monospace;font-size:22px;font-weight:400;color:var(--muted);
+  }
+  details.faq[open ] summary::after{content:"–"}
+  details.faq .faq-body{padding:0 20px 18px;color:var(--ink-soft);font-size:15.5px}
+  details.faq .faq-body p{margin:0 0 10px}
+  details.faq .faq-body p:last-child{margin-bottom:0}
+  details.faq ol{margin:6px 0 12px;padding-left:22px}
+  details.faq ol li{padding:3px 0}
+  details.faq .sub-h{font-weight:600;color:var(--ink);margin:14px 0 4px}
+  details.faq .sub-h:first-child{margin-top:0}
+  details.faq code{font-family:"IBM Plex Mono",monospace;font-size:13.5px;background:var(--surface-2);padding:1px 6px;border-radius:4px;color:var(--ink)}
+  details.faq .fine{font-size:13.5px;color:var(--muted)}
+
+  /* Final CTA + footer */
+  .final{padding:56px 0 10px}
+  .final-box{background:var(--ink);color:var(--bg);border-radius:14px;padding:36px;text-align:left}
+  @media (prefers-color-scheme: dark){ .final-box{background:var(--surface-2);border:1px solid var(--line);color:var(--ink)} }
+  .final-box h2{margin:0 0 10px;font-size:clamp(24px,3vw,32px);letter-spacing:-.02em;line-height:1.25}
+  .final-box p{margin:0 0 20px;opacity:.85;max-width:38em}
+  .final-box .waitlist{background:var(--surface);max-width:560px}
+  footer{padding:34px 0 44px;margin-top:40px;border-top:1px solid var(--line)}
+  footer p{font-size:13.5px;color:var(--muted);margin:0 0 8px;max-width:62em}
+  footer p:last-child{margin-bottom:0}
+
+  @media (max-width:880px){
+    .hero-grid,.pain-grid,.ba-grid,.does-grid,.pricing-grid{grid-template-columns:1fr}
+    .steps{grid-template-columns:1fr}
+    .demo-stats{grid-template-columns:1fr 1fr}
+    .tryit-grid{grid-template-columns:1fr}
+    .tryit-mid{flex-direction:row}
+    .hero{padding-top:30px}
+    .topbar nav{display:none}
+  }
+  @media (max-width:520px){
+    .wl-row{flex-direction:column}
+    .wl-row .btn{width:100%}
+    .demo-stats{grid-template-columns:1fr 1fr}
+    body{font-size:16px}
+  }
+</style>
+</head>
+<body>
+
+<div class="presale-strip" role="note"><strong>Pre-sale</strong> Concept — not built yet · Full refund if it never ships · No launch date promised</div>
+
+<div class="wrap">
+  <header class="topbar">
+    <a class="wordmark" href="#top"><span class="mark">SRT</span>CleanSRT</a>
+    <nav aria-label="Page sections">
+      <a href="#demo">Before / After</a>
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+  </header>
+
+  <!-- ============ HERO ============ -->
+  <div class="hero" id="top">
+    <div class="hero-grid">
+      <div>
+        <span class="status-pill"><span class="dot"></span>Pre-sale — concept, not built yet</span>
+        <h1>Clean up your <span class="hl">messy subtitles</span> and get your chapters in one click.</h1>
+        <p class="lede">CleanSRT is a simple <strong>offline desktop app for Windows and Mac</strong>. Drop in the SRT or VTT file you already have from CapCut, Premiere, or Whisper. It removes fillers and fixes broken lines, then exports a clean SRT/VTT, a YouTube <span class="mono">chapters.txt</span>, and MP3 chapters — ready to publish.</p>
+        <div class="no-list" aria-label="What CleanSRT does not do">
+          <span><b>✕</b>No transcription</span>
+          <span><b>✕</b>No cloud upload</span>
+          <span><b>✕</b>No video editing</span>
+        </div>
+
+        <div class="waitlist" id="buy-hero">
+          <h2>The pre-sale is live — early bird $19</h2>
+          <p>Pre-order now on Gumroad: <strong style="color:var(--ink)">$19 for the first 20 buyers</strong>, then $39 one-time. This is still a pre-sale concept — not built yet. Full refund if it never ships, plus a 30-day refund after delivery.</p>
+          <a class="btn btn-accent buy-btn" href="https://lzhorizon4.gumroad.com/l/rsmqd" target="_blank" rel="noopener">Get early bird — $19</a>
+          <p class="wl-note">Checkout and payment are handled securely by Gumroad. No launch date is promised — you are pre-ordering the build, and if it never ships you are refunded in full.</p>
+        </div>
+
+        <div class="price-snap" aria-label="Pricing summary">
+          <div class="cell hot">
+            <div class="k">Early bird · first 20</div>
+            <div class="v">$19 <small>one-time</small></div>
+          </div>
+          <div class="cell">
+            <div class="k">Regular pre-sale</div>
+            <div class="v">$39 <small>one-time</small></div>
+          </div>
+          <div class="cell">
+            <div class="k">Refund</div>
+            <div class="v">30 days <small>after delivery</small></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="code-stack" aria-label="Example subtitle cleanup">
+        <div class="code-panel">
+          <div class="code-head"><span class="tag tag-before">Before — auto-caption export</span><span>episode.srt</span></div>
+          <div class="code-body"><span class="ts">00:00:12,000 --&gt; 00:00:16,500</span><br><span class="fill">Um, uh,</span> <span class="fill">so, so,</span> <span class="fill">I, I</span> think<br><span class="fill">you know, like,</span> we should<br>start with, <span class="fill">uh,</span> the budget?</div>
+        </div>
+        <div class="arrow-row">CleanSRT · same timestamp, kept as-is</div>
+        <div class="code-panel">
+          <div class="code-head"><span class="tag tag-after">After — CleanSRT</span><span>episode_clean.srt</span></div>
+          <div class="code-body"><span class="ts">00:00:12,000 --&gt; 00:00:16,500</span><br>I think we should<br>start with the budget?</div>
+        </div>
+        <div class="code-panel">
+          <div class="code-head"><span class="tag" style="color:var(--code-hl)">Export — chapters.txt</span><span>paste into YouTube</span></div>
+          <div class="code-body">00:00 Intro<br>00:42 Why the budget comes first<br>03:15 The tool we actually use<br>07:30 What we would change next time</div>
+        </div>
+        <p class="code-caption">Same timestamp. Same meaning. No fillers, no repeats, no broken lines — and chapters you can paste straight into your YouTube description. Illustrative example from the pre-sale copy; the three full demo files further down this page are synthetic samples, labelled as such.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ PAIN ============ -->
+  <section id="pain">
+    <div class="sec-head">
+      <p class="kicker">The problem</p>
+      <h2>You already recorded a good episode. Then the subtitle work starts.</h2>
+      <p>You export captions from CapCut or Whisper and they come out messy — so you fix them by hand. Every week.</p>
+    </div>
+    <div class="pain-grid">
+      <div class="pain-card">
+        <h3>What an auto-caption export actually looks like</h3>
+        <ul>
+          <li><code>um, uh, you know, like</code> on every other line</li>
+          <li>The same word twice: <code>so, so, I, I think</code></li>
+          <li>Lines that run too long, split in the wrong place, or repeat</li>
+          <li>Timestamps you still have to write by hand for show notes and YouTube chapters</li>
+        </ul>
+      </div>
+      <div class="time-card">
+        <p class="kicker" style="color:inherit;opacity:.7">The weekly cost</p>
+        <p class="big">Close to <em>1 hour</em> of cleanup per episode</p>
+        <p>Manual timestamps take 30–45 minutes per episode, and show notes take another 20–30 minutes — after you've already done the recording, editing, and publishing. If you publish weekly, that's the part that quietly eats your week.</p>
+        <p class="src">Timing figures as cited from Wideframe in the CleanSRT research notes; the original Wideframe page was not re-verified for this page.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HOW IT WORKS ============ -->
+  <section id="how">
+    <div class="sec-head">
+      <p class="kicker">How it works</p>
+      <h2>Three steps, one job</h2>
+      <p>CleanSRT is built for that one job: take the SRT you already have, clean it, and give you chapters you can paste straight into YouTube or your podcast show notes.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="num">1</div>
+        <h3>Drop in your SRT or VTT</h3>
+        <p>Drag in the subtitle file you exported from CapCut, Premiere, DaVinci Resolve, YouTube, or Whisper. Your file stays on your computer.</p>
+      </div>
+      <div class="step">
+        <div class="num">2</div>
+        <h3>Review before you accept</h3>
+        <p>See a side-by-side diff preview. Nothing is overwritten. You keep the timestamps. You choose which chapter points to keep.</p>
+      </div>
+      <div class="step">
+        <div class="num">3</div>
+        <h3>Export clean files</h3>
+        <p>Download a clean SRT/VTT, a YouTube <code>chapters.txt</code>, and MP3 chapters. Paste the chapters into YouTube or your show notes and publish.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ BEFORE / AFTER DEMO ============ -->
+  <section id="demo">
+    <div class="sec-head">
+      <p class="kicker">Before / after</p>
+      <h2>Real cleaning rules, run on demo files</h2>
+      <p>Three messy SRT samples were cleaned with the six deterministic rules CleanSRT is designed around: remove fillers, collapse repeated words, re-wrap to 37 characters / 2 lines, sort cues and fix overlaps, strip HTML tags, and normalise spacing and capitalisation. First 10 cues of each file, shown side by side.</p>
+    </div>
+
+    <div class="demo-tabs" role="tablist" aria-label="Demo samples">
+      <button class="demo-tab" role="tab" aria-selected="true" data-demo="0" type="button">Podcast — small business</button>
+      <button class="demo-tab" role="tab" aria-selected="false" data-demo="1" type="button">YouTube — camera aperture</button>
+      <button class="demo-tab" role="tab" aria-selected="false" data-demo="2" type="button">Lesson — budgeting</button>
+    </div>
+
+    <div class="ba-grid">
+      <div class="code-panel">
+        <div class="code-head"><span class="tag tag-before">Before</span><span id="demo-before-name">01_original.srt</span></div>
+        <div class="code-body"><div class="cue-list" id="demo-before"></div></div>
+      </div>
+      <div class="code-panel">
+        <div class="code-head"><span class="tag tag-after">After</span><span id="demo-after-name">01_cleaned.srt</span></div>
+        <div class="code-body"><div class="cue-list" id="demo-after"></div></div>
+      </div>
+    </div>
+
+    <div class="demo-stats" aria-label="Demo totals across all three sample files">
+      <div class="stat"><div class="v">58</div><div class="k">subtitle cues cleaned across the 3 demo files</div></div>
+      <div class="stat"><div class="v">124</div><div class="k">filler words removed (um, uh, you know, like…)</div></div>
+      <div class="stat"><div class="v">13</div><div class="k">timestamp issues fixed — reordered cues &amp; trimmed overlaps</div></div>
+      <div class="stat"><div class="v">37 / 2</div><div class="k">max characters per line / max lines per cue, on every cleaned cue</div></div>
+    </div>
+
+    <div class="honest-note"><strong>Honest note:</strong> all three demo samples are <strong>synthetic</strong> — the spoken text was written for this validation demo, not taken from any real creator's transcript. The counts above are real counts from running the cleaning rules on those files. They show the rules work; they are not results from real-world episodes, and CleanSRT itself is not built yet.</div>
+  </section>
+
+  <!-- ============ TRY IT ============ -->
+  <section id="try">
+    <div class="sec-head">
+      <p class="kicker">Try the idea</p>
+      <h2>A tiny taste of the filler rule, right here</h2>
+      <p>This mini-demo runs two of the cleaning rules in your browser — filler removal and repeated-word collapse, then a 37-character re-wrap. It's a rough sketch of one part of the tool, not the app itself. Nothing you type leaves this page.</p>
+    </div>
+    <div class="tryit">
+      <div class="tryit-grid">
+        <div>
+          <label for="try-in">Your messy line</label>
+          <textarea id="try-in">Um, uh, so, so, I, I think you know, like, we should start with, uh, the budget for this episode?</textarea>
+        </div>
+        <div class="tryit-mid">
+          <button class="btn btn-accent" id="try-btn" type="button">Clean it →</button>
+          <div class="tryit-count" id="try-count" aria-live="polite"></div>
+        </div>
+        <div>
+          <label for="try-out">Cleaned · max 37 chars / line</label>
+          <pre class="out" id="try-out">Press “Clean it” to run the demo rules on your text.</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DOES / DOES NOT ============ -->
+  <section id="scope">
+    <div class="sec-head">
+      <p class="kicker">Scope</p>
+      <h2>What it does — and what it does not do</h2>
+      <p>One narrow job, done offline. If you need transcription or video editing, this is not that tool.</p>
+    </div>
+    <div class="does-grid">
+      <div class="does-card yes">
+        <h3><svg class="ic" width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="10" fill="var(--good)"/><path d="M6.5 11.5l3 3 6-6.5" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>What it does</h3>
+        <ul>
+          <li>Cleans SRT and VTT files you already have — removes fillers like <code>um, uh, you know, like, so</code></li>
+          <li>Removes repeated words and false starts — <code>I, I think</code> → <code>I think</code></li>
+          <li>Fixes long lines and bad line breaks — <strong>max 37 characters per line, max 2 lines per caption</strong>, the Premiere Pro readability rule</li>
+          <li>Merges split lines and splits run-on lines, re-numbers captions, removes exact duplicates</li>
+          <li><strong>Keeps your original timestamps</strong> — no re-timing</li>
+          <li>Lets you mark chapter points and exports a YouTube-ready <code>chapters.txt</code></li>
+          <li>Exports clean SRT and VTT, plus <strong>MP3 chapters</strong> for your podcast file</li>
+          <li>Works <strong>offline</strong> on Windows and Mac — no account, no upload, no internet needed</li>
+          <li>Shows a <strong>diff preview</strong> first, so you can check every change</li>
+        </ul>
+      </div>
+      <div class="does-card no">
+        <h3><svg class="ic" width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="10" fill="var(--bad)"/><path d="M7.5 7.5l7 7M14.5 7.5l-7 7" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>What it does NOT do</h3>
+        <ul>
+          <li><strong>No transcription.</strong> You bring your own SRT or VTT. Don't have one yet? The FAQ below shows how to export one from CapCut or YouTube in 3 steps.</li>
+          <li><strong>No AI show-notes generation.</strong> It does not write your summary, description, or episode notes.</li>
+          <li><strong>No video editing or burned-in captions.</strong> It does not edit video, add captions to video, or export a captioned video file.</li>
+          <li><strong>No cloud upload.</strong> Your audio and subtitles are not uploaded anywhere. It runs on your computer.</li>
+          <li><strong>No auto chapter-title generation in v1.</strong> You pick the chapter points and titles. Automatic titles are not in the first version.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PRICING ============ -->
+  <section id="pricing">
+    <div class="sec-head">
+      <p class="kicker">Pricing</p>
+      <h2>One-time price. No subscription.</h2>
+      <p>This is a pre-sale for a product that does not exist yet — please read the promise on the right before paying anyone anything.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="price-card">
+        <span class="flag">Pre-sale — not built yet</span>
+        <div class="k" style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)">CleanSRT · Windows &amp; Mac · Offline</div>
+        <div class="price-main">
+          <span class="now">$19</span>
+          <span class="was">$39</span>
+          <span class="per">early bird, first 20 buyers · then $39 one-time</span>
+        </div>
+        <ul>
+          <li><strong>$39 one-time.</strong> Pay once. No subscription.</li>
+          <li><strong>$19 early bird — first 20 buyers only.</strong> After 20 pre-orders, the price is $39.</li>
+          <li><strong>30-day refund</strong> after you receive the app, if it doesn't work for you.</li>
+          <li><strong>Full refund if it never ships</strong> — see the promise.</li>
+          <li><strong>No fixed launch date.</strong> You pay to help fund the build and get the app when it's ready.</li>
+        </ul>
+        <p style="margin:20px 0 0"><a class="btn btn-accent" href="https://lzhorizon4.gumroad.com/l/rsmqd" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;text-decoration:none">Get early bird — $19</a></p>
+      </div>
+      <div class="promise-card">
+        <h3>The refund / kill promise</h3>
+        <p class="big-line">If validation fails, we refund every pre-sale in full.</p>
+        <p>Plain promise: if we do not get enough pre-orders to build CleanSRT, or we decide not to build it, we will refund every pre-sale buyer in full. No credit, no swap for another product, no “keep it for next time.”</p>
+        <p>If the app ships and it does not work for you, you also have a 30-day refund from delivery.</p>
+        <p>You are pre-ordering the build, not buying a finished app. If we don't build it, you get a full refund. No launch date is promised.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FAQ ============ -->
+  <section id="faq">
+    <div class="sec-head">
+      <p class="kicker">FAQ</p>
+      <h2>Questions, answered straight</h2>
+    </div>
+    <div class="faq-list">
+
+      <details class="faq" open>
+        <summary>I don't have an SRT — how do I export one from CapCut / YouTube in 3 steps?</summary>
+        <div class="faq-body">
+          <p class="sub-h">From CapCut — 3 steps</p>
+          <ol>
+            <li>Open your project, go to Text &gt; Auto Captions, and generate captions for your video.</li>
+            <li>Select the caption track and check your captions are correct.</li>
+            <li>Export your subtitles as an SRT file, then drop that SRT into CleanSRT.</li>
+          </ol>
+          <p class="sub-h">From YouTube — 3 steps</p>
+          <ol>
+            <li>Go to YouTube Studio &gt; Subtitles, and open the video you want.</li>
+            <li>Find the subtitle track you want to use, open its menu (⋮), and choose Download.</li>
+            <li>Save the <code>.srt</code> file, then drop it into CleanSRT.</li>
+          </ol>
+          <p class="fine">Note: exact CapCut menu names may change by version. If your version labels it “Export subtitles” or “Export captions,” that is the same step. YouTube Studio layout and menu labels also change over time.</p>
+        </div>
+      </details>
+
+      <details class="faq">
+        <summary>Does it work with Premiere Pro / DaVinci Resolve?</summary>
+        <div class="faq-body">
+          <p>Yes — if you export an SRT or VTT from them, CleanSRT can clean it. In Premiere Pro: Window &gt; Captions, then export your captions as SRT. In DaVinci Resolve: export your subtitle track as SRT.</p>
+          <p>CleanSRT formats captions to the Premiere readability rule — <strong>max 37 characters per line, max 2 lines per caption</strong> — so the cleaned file is ready to bring back into Premiere or Resolve. (Premiere itself doesn't hard-block longer lines; this is the readability rule the app enforces.)</p>
+          <p>CleanSRT does not run inside Premiere or Resolve. It is a separate desktop app: you export SRT out, clean it, and import the clean SRT back in.</p>
+        </div>
+      </details>
+
+      <details class="faq">
+        <summary>Is my audio uploaded anywhere?</summary>
+        <div class="faq-body">
+          <p>No. CleanSRT works offline on your computer. Your audio is never uploaded, and your SRT/VTT is not sent to a server. There is no cloud account to create.</p>
+        </div>
+      </details>
+
+      <details class="faq">
+        <summary>What if it breaks my timestamps?</summary>
+        <div class="faq-body">
+          <p>It shouldn't — CleanSRT keeps your original timestamps and shows you a diff preview before you export anything. Your original file is never overwritten. You export a new clean file, and you can compare it line by line first. If a change looks wrong, don't accept it.</p>
+        </div>
+      </details>
+
+      <details class="faq">
+        <summary>What do I get as an early bird?</summary>
+        <div class="faq-body">
+          <p>You pay $19 instead of $39 — a one-time payment for the same app, for the first 20 buyers only. You also get the app as soon as it ships, and the same 30-day refund after delivery. Early bird does not mean extra features. It is the same v1 app, at the early price, for helping validate the build.</p>
+        </div>
+      </details>
+
+      <details class="faq">
+        <summary>When do I get the app?</summary>
+        <div class="faq-body">
+          <p>When it is built. This is a pre-sale, so there is no fixed delivery date yet. We will email buyers with build updates, and with the download link when it ships. If we decide not to build it, every pre-sale is refunded in full.</p>
+        </div>
+      </details>
+
+      <details class="faq">
+        <summary>What formats go in and out?</summary>
+        <div class="faq-body">
+          <p><strong>In:</strong> SRT and VTT. <strong>Out:</strong> clean SRT, clean VTT, YouTube <code>chapters.txt</code>, and MP3 chapters.</p>
+        </div>
+      </details>
+
+      <details class="faq">
+        <summary>Does CleanSRT transcribe my audio or video?</summary>
+        <div class="faq-body">
+          <p>No. You bring your own SRT or VTT from CapCut, Premiere, DaVinci Resolve, YouTube, or Whisper. CleanSRT cleans the text and timing you already have — it does not listen to your audio and create captions from scratch.</p>
+        </div>
+      </details>
+
+      <details class="faq">
+        <summary>What operating systems does it work on?</summary>
+        <div class="faq-body">
+          <p>Windows and Mac, as a desktop app, offline. No browser version in v1.</p>
+        </div>
+      </details>
+
+    </div>
+  </section>
+
+  <!-- ============ FINAL CTA ============ -->
+  <div class="final" id="buy-final">
+    <div class="final-box">
+      <h2>Still cleaning subtitles by hand every week?</h2>
+      <p>The $19 early-bird pre-sale is live now on Gumroad — first 20 buyers only, then $39 one-time. CleanSRT is still a pre-sale concept, not built yet. If it never ships, every pre-sale buyer is refunded in full — and you also get a 30-day refund after delivery.</p>
+      <a class="btn btn-accent buy-btn" href="https://lzhorizon4.gumroad.com/l/rsmqd" target="_blank" rel="noopener" style="max-width:560px">Get early bird — $19</a>
+      <p style="margin:16px 0 0;font-size:13.5px">Checkout and payment are handled securely by Gumroad. No launch date is promised.</p>
+    </div>
+  </div>
+
+  <footer>
+    <p><strong style="color:var(--ink)">CleanSRT is a pre-sale concept and is not built yet.</strong> This page exists to validate whether indie podcasters and talking-head YouTubers want it. No launch date is promised. If it never ships, every pre-sale is refunded in full.</p>
+    <p>The before/after examples on this page come from synthetic demo files written for validation — not from real creators' episodes — cleaned with deterministic rules (no AI rewriting). There are no sales numbers, reviews, or testimonials for CleanSRT, because it hasn't launched; none are shown here.</p>
+    <p>Per-episode timing figures are as cited from Wideframe in the product research notes and were not re-verified for this page. CapCut and YouTube Studio menu names may change by version.</p>
+    <div style="margin-top:20px"><a href="https://launchbuff.com/products/cleansrt-bjzfc2" target="_blank" rel="noopener noreferrer" title="Featured on LaunchBuff"><img src="https://launchbuff.com/badge-featured-dark.svg" alt="Featured on LaunchBuff" width="256" height="80" /></a></div>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- Demo data: first 10 cues, verbatim from the validation files ---------- */
+  var DEMOS = [
+    {
+      beforeName: "01-podcast-small-business_original.srt",
+      afterName:  "01-podcast-small-business_cleaned.srt",
+      before: [
+        "um, hi everyone, welcome to the show, you know, this is the first episode",
+        "i started this podcast to talk about starting a small business, um, you know",
+        "uh, like, i had no money, no plan, just a small idea and questions",
+        "the, the first thing i learned was that customers pay for a clear result",
+        "you know, most people wait for permission before they start, um, like, uh",
+        "\u003cfont color=\"#FFFFFF\"\u003ei kept my day job for a year\u003c/font\u003e while i tested the idea, uh, you know",
+        "i, i, i talked to ten shop owners and asked what they would pay for, um",
+        "like, one of them said, just solve one small problem really, really well",
+        "uh, my first sale was only twelve dollars, but it proved a point",
+        "i, i remember thinking, okay, this could actually become a real business, um, you know"
+      ],
+      after: [
+        "Hi everyone, welcome to the show, this is the first episode",
+        "I started this podcast to talk about starting a small business",
+        "I had no money, no plan, just a small idea and questions",
+        "The first thing I learned was that customers pay for a clear result",
+        "Most people wait for permission before they start",
+        "I kept my day job for a year while I tested the idea",
+        "I talked to ten shop owners and asked what they would pay for",
+        "One of them said, just solve one small problem really well",
+        "My first sale was only twelve dollars, but it proved a point",
+        "I remember thinking, okay, this could actually become a real business"
+      ]
+    },
+    {
+      beforeName: "02-camera-aperture_original.srt",
+      afterName:  "02-camera-aperture_cleaned.srt",
+      before: [
+        "um, hi, today we will look at aperture and what it does, you know",
+        "aperture is the opening inside your lens, uh, it lets light in, like, you know",
+        "a low number like f-one-point-eight means a wide opening, um, uh",
+        "uh, a wide opening gives you a blurry background behind your subject, like, you know",
+        "a high number like f-eleven means a narrow opening, uh, like",
+        "a narrow opening keeps more of the scene sharp and in focus, um, you know",
+        "\u003cfont face=\"Arial\"\u003ei shoot portraits at f-two-point-eight\u003c/font\u003e most of the time, uh, you know",
+        "for a group photo i move to f-five-point-six or higher, like, um",
+        "watch your shutter speed, a wide aperture lets in more light, uh, you know",
+        "if the photo is too bright, uh, close the aperture one stop, like"
+      ],
+      after: [
+        "Hi, today we will look at aperture and what it does",
+        "Aperture is the opening inside your lens, it lets light in",
+        "A low number like f-one-point-eight means a wide opening",
+        "A wide opening gives you a blurry background behind your subject",
+        "A high number like f-eleven means a narrow opening",
+        "A narrow opening keeps more of the scene sharp and in focus",
+        "I shoot portraits at f-two-point-eight most of the time",
+        "For a group photo I move to f-five-point-six or higher",
+        "Watch your shutter speed, a wide aperture lets in more light",
+        "If the photo is too bright, close the aperture one stop"
+      ]
+    },
+    {
+      beforeName: "03-budgeting-lesson_original.srt",
+      afterName:  "03-budgeting-lesson_cleaned.srt",
+      before: [
+        "um, welcome back, today we will build a simple monthly budget, you know",
+        "a budget is just a plan for where your money goes, uh, you know, like",
+        "first, write down what you earn each month after tax, um, uh",
+        "next, list your fixed costs like rent, bills, and food, uh, you know",
+        "\u003cfont color=\"#FFFF00\"\u003ethen list the flexible costs like travel\u003c/font\u003e and eating out, um, like",
+        "subtract the costs from your income to see what is left, uh, you know",
+        "if nothing is left, you need to cut one flexible cost, um, uh",
+        "pick, pick the easiest cut first, small wins keep you going, like, you know",
+        "uh, put the money you save into a separate savings account, you know, like",
+        "aim to save ten percent, even five percent is a good start, um, uh"
+      ],
+      after: [
+        "Welcome back, today we will build a simple monthly budget",
+        "A budget is just a plan for where your money goes",
+        "First, write down what you earn each month after tax",
+        "Next, list your fixed costs like rent, bills, and food",
+        "Then list the flexible costs like travel and eating out",
+        "Subtract the costs from your income to see what is left",
+        "If nothing is left, you need to cut one flexible cost",
+        "Pick the easiest cut first, small wins keep you going",
+        "Put the money you save into a separate savings account",
+        "Aim to save ten percent, even five percent is a good start"
+      ]
+    }
+  ];
+
+  function esc(s){
+    return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+  function renderCues(el, cues){
+    var html = "";
+    for (var i = 0; i < cues.length; i++){
+      html += '<div class="cue"><span class="n">Cue ' + (i+1) + '</span><p>' + esc(cues[i]) + '</p></div>';
+    }
+    el.innerHTML = html;
+  }
+  var beforeEl = document.getElementById("demo-before");
+  var afterEl  = document.getElementById("demo-after");
+  var beforeNameEl = document.getElementById("demo-before-name");
+  var afterNameEl  = document.getElementById("demo-after-name");
+  var tabs = document.querySelectorAll(".demo-tab");
+
+  function showDemo(idx){
+    var d = DEMOS[idx];
+    renderCues(beforeEl, d.before);
+    renderCues(afterEl, d.after);
+    beforeNameEl.textContent = d.beforeName;
+    afterNameEl.textContent = d.afterName;
+    for (var i = 0; i < tabs.length; i++){
+      tabs[i].setAttribute("aria-selected", i === idx ? "true" : "false");
+    }
+  }
+  for (var t = 0; t < tabs.length; t++){
+    tabs[t].addEventListener("click", function(){
+      showDemo(parseInt(this.getAttribute("data-demo"), 10));
+    });
+  }
+  showDemo(0);
+
+  /* ---------- Mini cleaner demo (R1 fillers + R2 repeats + R3 wrap) ---------- */
+  var FILLER_PHRASES = ["you know", "i mean"];
+  var FILLER_WORDS = { um:1, uh:1, erm:1, er:1, ah:1 };
+
+  function cleanText(raw){
+    var removed = 0;
+    var text = raw.replace(/\s+/g, " ").trim();
+    // phrase fillers first ("you know", "i mean"), with any comma glued to them
+    for (var p = 0; p < FILLER_PHRASES.length; p++){
+      var re = new RegExp("(^|\\s),?\\s*" + FILLER_PHRASES[p] + "(?=[,\\s.!?]|$)", "gi");
+      text = text.replace(re, function(m, lead){ removed++; return lead || ""; });
+    }
+    // token pass: drop standalone fillers, collapse repeated words.
+    // When a filler or a duplicate is dropped, a comma that only existed to
+    // separate it is dropped with it ("with, uh, the" -> "with the").
+    var tokens = text.split(/\s+/).filter(Boolean);
+    var out = [];
+    function stripTrailComma(){
+      if (out.length){
+        out[out.length - 1] = out[out.length - 1].replace(/,$/, "");
+      }
+    }
+    for (var i = 0; i < tokens.length; i++){
+      var tok = tokens[i];
+      var bare = tok.replace(/^[^A-Za-z]+|[^A-Za-z]+$/g, "").toLowerCase();
+      var commaGlued = /,$/.test(tok) || (i > 0 && /,$/.test(tokens[i-1])) || i === 0 || i === tokens.length - 1;
+      var isFiller = !!FILLER_WORDS[bare]
+        || ((bare === "like" || bare === "so") && commaGlued);
+      if (isFiller){ removed++; stripTrailComma(); continue; }
+      var prevBare = out.length ? out[out.length - 1].replace(/^[^A-Za-z]+|[^A-Za-z]+$/g, "").toLowerCase() : null;
+      if (prevBare !== null && prevBare === bare && bare.length > 0){ removed++; stripTrailComma(); continue; }
+      out.push(tok);
+    }
+    text = out.join(" ")
+      .replace(/\s+([,.!?])/g, "$1")
+      .replace(/,\s*,/g, ",")
+      .replace(/^[\s,]+/, "")
+      .replace(/,+\s*$/, "");
+    text = text.charAt(0).toUpperCase() + text.slice(1);
+    return { text: text, removed: removed };
+  }
+  function wrap37(text){
+    var words = text.split(/\s+/), lines = [], cur = "";
+    for (var i = 0; i < words.length; i++){
+      var w = words[i];
+      if (!cur) { cur = w; }
+      else if ((cur + " " + w).length <= 37) { cur += " " + w; }
+      else { lines.push(cur); cur = w; }
+    }
+    if (cur) lines.push(cur);
+    return lines.join("\n");
+  }
+  var tryBtn = document.getElementById("try-btn");
+  var tryIn = document.getElementById("try-in");
+  var tryOut = document.getElementById("try-out");
+  var tryCount = document.getElementById("try-count");
+  tryBtn.addEventListener("click", function(){
+    var r = cleanText(tryIn.value);
+    tryOut.textContent = r.text ? wrap37(r.text) : "(nothing left after cleaning)";
+    tryCount.textContent = r.removed > 0
+      ? r.removed + (r.removed === 1 ? " filler / repeat" : " fillers / repeats") + " removed"
+      : "No fillers or repeats found";
+  });
+
+})();
+</script>
+</body>
+</html>
